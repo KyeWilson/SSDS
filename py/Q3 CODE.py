@@ -1,105 +1,74 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
-# Data manipulation and visualization
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Machine learning tools
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+# Import functions from functions.py
+from py.functions import (
+    load_and_preprocess_data, split_data, standardize_features,
+    one_hot_encode_labels, build_neural_network, compile_and_train_model,
+    evaluate_model
+)
 
-# Neural network tools
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import to_categorical
+# Define file path
+file_path = "Skyserver_SQL2_27_2018 6_51_39 PM.csv"
 
+# Load and preprocess data
+data = load_and_preprocess_data(file_path)
 
-# In[2]:
+# Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = split_data(data)
 
+# Standardize the feature values
+X_train, X_test = standardize_features(X_train, X_test)
 
-# Load the cleaned dataset
-file_path = "Skyserver_SQL2_27_2018 6_51_39 PM.csv"  # Adjust path if needed
-data = pd.read_csv(file_path)
+# One-hot encode target labels
+y_train, y_test = one_hot_encode_labels(y_train, y_test)
 
-# Encode the 'class' column into numerical values
-data['class_encoded'] = data['class'].astype('category').cat.codes
+# Display dataset overview
+data.head()
 
-# Normalize the 'redshift' column
-data['redshift_normalized'] = (data['redshift'] - data['redshift'].mean()) / data['redshift'].std()
-
-# Select features and target
-X = data[['ra', 'dec', 'u', 'g', 'r', 'i', 'z', 'redshift_normalized']]  # Feature columns
-y = data['class_encoded']  # Target column
-
-# Split into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Standardize the features
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
-# One-hot encode the target labels
-y_train = to_categorical(y_train, num_classes=3)
-y_test = to_categorical(y_test, num_classes=3)
-
-# Display shapes to confirm
-print(f"Training Features Shape: {X_train.shape}")
-print(f"Testing Features Shape: {X_test.shape}")
-print(f"Training Target Shape: {y_train.shape}")
-print(f"Testing Target Shape: {y_test.shape}")
-
-
-# In[3]:
-
-
-# Define a function to build, train, and evaluate a model with a specific activation function
-def build_and_evaluate_model(activation_function):
+def test_activation_function(activation_function):
+    """Train and evaluate a neural network with a given activation function."""
     print(f"\nTesting Activation Function: {activation_function}")
     
-    # Define the model
-    model = Sequential([
-        Dense(64, activation=activation_function, input_shape=(X_train.shape[1],)),  # Input layer
-        Dense(32, activation=activation_function),  # Hidden layer
-        Dense(3, activation='softmax')  # Output layer
-    ])
+    # Build model
+    model = build_neural_network(activation_function, input_shape=X_train.shape[1], num_classes=3)
     
-    # Compile the model
-    model.compile(optimizer=Adam(learning_rate=0.001),
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    
-    # Train the model
-    history = model.fit(X_train, y_train, validation_data=(X_test, y_test), 
-                        epochs=20, batch_size=32, verbose=0)
+    # Compile and train the model
+    compile_and_train_model(model, X_train, y_train, X_test, y_test)
     
     # Evaluate the model
-    test_loss, test_accuracy = model.evaluate(X_test, y_test, verbose=0)
+    test_accuracy, test_loss = evaluate_model(model, X_test, y_test)
+    
     print(f"Test Accuracy: {test_accuracy:.2f}")
     print(f"Test Loss: {test_loss:.4f}")
     
-    # Return results for comparison
     return test_accuracy, test_loss
 
-
-# In[4]:
-
-
-# Test different activation functions
+# Test multiple activation functions
 results = {}
 for activation in ['relu', 'sigmoid', 'tanh']:
-    accuracy, loss = build_and_evaluate_model(activation)
+    accuracy, loss = test_activation_function(activation)
     results[activation] = {'Accuracy': accuracy, 'Loss': loss}
 
-# Display results
+# Convert results to a DataFrame for easy visualization
 results_df = pd.DataFrame(results).T
 print(results_df)
 
+# Plot results
+plt.figure(figsize=(8, 5))
+sns.barplot(x=results_df.index, y=results_df['Accuracy'], palette="viridis")
+plt.title("Neural Network Accuracy by Activation Function")
+plt.ylabel("Accuracy")
+plt.xlabel("Activation Function")
+plt.ylim(0, 1)
+plt.show()
+
+plt.figure(figsize=(8, 5))
+sns.barplot(x=results_df.index, y=results_df['Loss'], palette="magma")
+plt.title("Neural Network Loss by Activation Function")
+plt.ylabel("Loss")
+plt.xlabel("Activation Function")
+plt.ylim(0, max(results_df['Loss']) * 1.2)
+plt.show()
