@@ -57,13 +57,16 @@ The Galaxy Zoo dataset is ideal for machine learning tasks due to:
 ## How to Run the Notebooks
 
 1. Clone the repository:
+  ```bash
    git clone <repository-link>
    cd <repository-folder>
 
 2. **Install the dependencies**: Use the provided `dependencies.txt` file to ensure all required libraries are installed:
+  ```bash
   pip install -r dependencies.txt
 
 3. **Run the notebooks**: Launch Jupyter Notebook:
+  ```bash
   jupyter notebook
 
 Navigate to the respective Q1, Q2, and Q3 folders to explore the notebooks.
