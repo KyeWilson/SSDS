@@ -1,44 +1,63 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import classification_report, accuracy_score
+
+# Import functions from functions.py
 from py.functions import (
-    load_data, preprocess_data, split_data, train_decision_tree,
-    evaluate_model, plot_confusion_matrix, grid_search_decision_tree
+    load_and_preprocess_data, split_data, build_decision_tree_model,
+    evaluate_model, plot_confusion_matrix, decision_tree_grid_search
 )
 
-# File path
+# Define file path
 file_path = "Skyserver_SQL2_27_2018 6_51_39 PM.csv"
 
-# Load data
-data = load_data(file_path)
+# Load and preprocess data
+data = load_and_preprocess_data(file_path)
 
-# Preprocess data
-columns_to_drop = ['objid', 'specobjid', 'fiberid', 'plate', 'mjd']
-data = preprocess_data(data, columns_to_drop, target_column='class')
+# Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = split_data(data)
 
-# Split data
-feature_columns = ['ra', 'dec', 'u', 'g', 'r', 'i', 'z', 'redshift_normalized']
-X_train, X_test, y_train, y_test = split_data(data, feature_columns, 'class_encoded')
+# Display the first few rows of the processed data
+data.head()
 
-# Train Decision Tree
-model = train_decision_tree(X_train, y_train)
+# Train a Decision Tree classifier
+model = build_decision_tree_model(X_train, y_train)
 
-# Evaluate model
-y_pred, accuracy, report, conf_matrix = evaluate_model(model, X_test, y_test)
-print(f"Accuracy: {accuracy:.2f}")
-print("Classification Report:")
-print(report)
-plot_confusion_matrix(conf_matrix)
+# Make predictions
+y_pred = model.predict(X_test)
 
-# Grid Search for Hyperparameter Tuning
+# Evaluate the model
+accuracy, report, conf_matrix = evaluate_model(model, X_test, y_test)
+
+# Print results
+print(f"Decision Tree Accuracy: {accuracy:.2f}")
+print("Classification Report:\n", report)
+
+# Plot confusion matrix
+plot_confusion_matrix(y_test, y_pred, class_names=['Galaxy', 'Star', 'Quasar'])
+
+# Define the parameter grid for optimization
 param_grid = {
     'max_depth': [5, 10, 15, 20, None],
     'min_samples_split': [2, 5, 10],
     'min_samples_leaf': [1, 2, 4]
 }
-best_params, best_model = grid_search_decision_tree(X_train, y_train, param_grid)
-print(f"Best Parameters: {best_params}")
+
+# Perform Grid Search
+best_params, best_model = decision_tree_grid_search(X_train, y_train, param_grid)
+
+print(f"Best Parameters Found: {best_params}")
+
+# Make predictions using the best model
+y_pred_refined = best_model.predict(X_test)
 
 # Evaluate refined model
-y_pred_refined, accuracy_refined, report_refined, conf_matrix_refined = evaluate_model(best_model, X_test, y_test)
+accuracy_refined, report_refined, conf_matrix_refined = evaluate_model(best_model, X_test, y_test)
+
 print(f"Refined Model Accuracy: {accuracy_refined:.2f}")
-print("Classification Report (Refined Model):")
-print(report_refined)
-plot_confusion_matrix(conf_matrix_refined, title="Confusion Matrix (Refined Model)")
+print("Classification Report (Refined Model):\n", report_refined)
+
+# Plot confusion matrix for the refined model
+plot_confusion_matrix(y_test, y_pred_refined, class_names=['Galaxy', 'Star', 'Quasar'])
